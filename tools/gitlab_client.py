@@ -118,16 +118,81 @@ def post_mr_comment(project, mr_iid: int, body: str) -> None:
     mr.notes.create({"body": body})
 
 
-# ── Pipeline failure helper (Insight Agent) ───────────────────────────────────
+# ── Pipeline failure helpers (Insight Agent) ──────────────────────────────────
+
+def get_pipeline_detail(project, pipeline_id: int) -> dict:
+    """Return pipeline metadata + failed jobs with log excerpts."""
+    pipeline = project.pipelines.get(pipeline_id)
+    jobs = pipeline.jobs.list(get_all=True)
+
+    failed_jobs = []
+    for j in jobs:
+        if j.status != "failed":
+            continue
+        log = ""
+        try:
+            raw_log = project.jobs.get(j.id).trace()
+            if isinstance(raw_log, bytes):
+                raw_log = raw_log.decode("utf-8", errors="ignore")
+            # Last 60 lines are most useful
+            lines = raw_log.splitlines()
+            log = "\n".join(lines[-60:])
+        except Exception:
+            log = "(log unavailable)"
+
+        failed_jobs.append({
+            "name": j.name,
+            "stage": j.stage,
+            "failure_reason": getattr(j, "failure_reason", "unknown"),
+            "duration": getattr(j, "duration", 0),
+            "web_url": j.web_url,
+            "log_tail": log,
+        })
+
+    triggered_by = "unknown"
+    if hasattr(pipeline, "user") and pipeline.user:
+        triggered_by = pipeline.user.get("name", "unknown")
+
+    return {
+        "id": pipeline.id,
+        "status": pipeline.status,
+        "branch": pipeline.ref,
+        "duration": getattr(pipeline, "duration", 0) or 0,
+        "web_url": pipeline.web_url,
+        "triggered_by": triggered_by,
+        "failed_jobs": failed_jobs,
+    }
+
+
+def get_recent_pipeline_failures(project, branch: str = "", days: int = 7) -> list[dict]:
+    """Return summary of recent failed pipelines for pattern analysis."""
+    from datetime import datetime, timedelta, timezone
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    kwargs = dict(status="failed", updated_after=since.isoformat(), per_page=50, get_all=True)
+    if branch:
+        kwargs["ref"] = branch
+    pipelines = project.pipelines.list(**kwargs)
+    return [
+        {
+            "id": p.id,
+            "branch": p.ref,
+            "created_at": p.created_at,
+            "duration": getattr(p, "duration", 0),
+            "web_url": p.web_url,
+        }
+        for p in pipelines
+    ]
+
 
 def get_failed_jobs(project, pipeline_id: int) -> list[dict]:
+    """Lightweight failed-jobs fetch (kept for backwards compat)."""
     pipeline = project.pipelines.get(pipeline_id)
     jobs = pipeline.jobs.list(scope=["failed"], get_all=True)
     return [
         {
             "name": j.name,
             "stage": j.stage,
-            "failure_reason": j.failure_reason,
+            "failure_reason": getattr(j, "failure_reason", "unknown"),
             "web_url": j.web_url,
         }
         for j in jobs
