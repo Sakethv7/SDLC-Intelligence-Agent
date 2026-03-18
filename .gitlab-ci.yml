@@ -1,0 +1,70 @@
+stages:
+  - test
+  - deploy
+
+variables:
+  PYTHON_VERSION: "3.11"
+
+default:
+  image: python:3.11-slim
+  before_script:
+    - pip install -r requirements.txt --quiet
+
+# ── Tests ────────────────────────────────────────────────────────────────────
+unit-tests:
+  stage: test
+  script:
+    - python -m pytest tests/ -v
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ── Digest Agent (weekly cron) ───────────────────────────────────────────────
+digest-agent:
+  stage: deploy
+  script:
+    - python -m triggers.weekly_cron
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $TRIGGER_AGENT == "digest"
+  environment:
+    name: production
+
+# ── Security Agent (MR diff scan) ────────────────────────────────────────────
+security-agent:
+  stage: deploy
+  script:
+    - python -m triggers.reviewer_assignment
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $TRIGGER_AGENT == "security"
+  variables:
+    MR_IID: $CI_MERGE_REQUEST_IID
+
+# ── Compliance Agent (reviewer assigned) ─────────────────────────────────────
+compliance-agent:
+  stage: deploy
+  script:
+    - python -m triggers.reviewer_assignment --compliance
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $TRIGGER_AGENT == "compliance"
+
+# ── Insight Agent (pipeline failure) ─────────────────────────────────────────
+insight-agent:
+  stage: deploy
+  script:
+    - python -m triggers.pipeline_failure
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline" && $CI_JOB_STATUS == "failed"
+    - if: $TRIGGER_AGENT == "insight"
+  variables:
+    FAILED_PIPELINE_ID: $CI_PIPELINE_ID
+
+# ── Webhook server (always-on) ────────────────────────────────────────────────
+deploy-server:
+  stage: deploy
+  script:
+    - uvicorn server:app --host 0.0.0.0 --port $PORT
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual

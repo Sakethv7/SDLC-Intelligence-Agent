@@ -1,0 +1,14 @@
+anthropic>=0.25.0
+python-gitlab>=4.4.0
+requests>=2.31.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
+python-dotenv>=1.0.0
+numpy>=1.26.0
+pypdf>=4.2.0
+sentence-transformers>=3.0.0
+qdrant-client>=1.9.0
+pydantic>=2.7.0
+python-multipart>=0.0.9
+python-dateutil>=2.9.0
+apscheduler>=3.10.4

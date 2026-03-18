@@ -1,0 +1,9 @@
+ci_access:
+  projects:
+    - id: sakethv7-group/gitlab-ai-hackathon
+
+user_access:
+  projects:
+    - id: sakethv7-group/gitlab-ai-hackathon
+      access_as:
+        agent: {}
