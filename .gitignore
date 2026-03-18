@@ -8,7 +8,8 @@ __pycache__/
 dist/
 build/
 .DS_Store
-policy_docs/
+policy_docs/*.npy
+policy_docs/*.json
 vectors.npy
 ids.npy
 payloads.json

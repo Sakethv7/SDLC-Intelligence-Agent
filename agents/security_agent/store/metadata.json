@@ -1,0 +1,62 @@
+[
+  {
+    "source": "mr_security_policy.md",
+    "chunk_index": 0,
+    "text": "# Merge Request Security Policy\n\n## High-Risk Change Patterns (require security review)\n- Changes to authentication or session management code\n- New external API integrations or HTTP clients\n- Database schema changes involving PII\n- New file upload or download functionality\n- Changes to permission/role logic\n- New environment variable handling\n- Modifications to CI/CD pipeline configuration\n- New third-party dependencies\n- Changes to cryptographic functions or token generation\n\n## Automatic Block Criteria (MR must not merge)\n- Any hardcoded secret, password, or API key detected\n- SSL/TLS verification disabled (`verify=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`)\n- Use of `eval()` or `exec()` with any non-literal input\n- Raw SQL string interpolation with user-supplied variables\n- Dependencies"
+  },
+  {
+    "source": "mr_security_policy.md",
+    "chunk_index": 1,
+    "text": "ication disabled (`verify=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`)\n- Use of `eval()` or `exec()` with any non-literal input\n- Raw SQL string interpolation with user-supplied variables\n- Dependencies with CVSS score >= 9.0 (Critical)\n- Private keys or certificates in diff\n\n## Medium Risk \u2014 Requires Comment\n- New `subprocess` or shell command execution\n- Broad file system access patterns\n- Disabling of security linters or scanners in CI\n- Relaxing of CORS policy\n- New admin-level API endpoints without rate limiting\n\n## Low Risk \u2014 Best Practice Suggestions\n- Missing input length validation\n- Overly broad exception catching (`except Exception`)\n- Debug logging left in production code paths\n- Missing timeout on network calls\n- Unused imports that could indicate leftover debug code"
+  },
+  {
+    "source": "mr_security_policy.md",
+    "chunk_index": 2,
+    "text": "rly broad exception catching (`except Exception`)\n- Debug logging left in production code paths\n- Missing timeout on network calls\n- Unused imports that could indicate leftover debug code"
+  },
+  {
+    "source": "owasp_top10.md",
+    "chunk_index": 0,
+    "text": "# OWASP Top 10 Security Policy\n\n## A01 - Broken Access Control\n- Enforce least privilege on all endpoints\n- Deny access by default; explicitly allow\n- Never expose directory listings\n- Log and alert on access control failures\n- Invalidate JWT tokens server-side on logout\n\n## A02 - Cryptographic Failures\n- Never store passwords in plain text; use bcrypt/argon2\n- Encrypt sensitive data at rest and in transit (TLS 1.2+)\n- Never hardcode secrets, API keys, or credentials in source code\n- Use secrets manager (Vault, AWS Secrets Manager) for all credentials\n- Never commit .env files or private keys to version control\n\n## A03 - Injection\n- Use parameterized queries / prepared statements for all DB access\n- Never interpolate user input directly into SQL, shell commands, or LDAP queries\n- Validate"
+  },
+  {
+    "source": "owasp_top10.md",
+    "chunk_index": 1,
+    "text": "to version control\n\n## A03 - Injection\n- Use parameterized queries / prepared statements for all DB access\n- Never interpolate user input directly into SQL, shell commands, or LDAP queries\n- Validate and sanitize all user-supplied input\n- Use allowlists, not denylists, for input validation\n\n## A04 - Insecure Design\n- Threat model all new features before implementation\n- Apply defense in depth \u2014 no single point of security failure\n- Rate-limit all authentication endpoints\n\n## A05 - Security Misconfiguration\n- Remove default credentials and unused features\n- Keep all dependencies up to date and scan with SCA tools\n- Disable debug mode and stack traces in production\n- Set secure HTTP headers: CSP, HSTS, X-Frame-Options\n\n## A06 - Vulnerable and Outdated Components\n- Pin all dependency versions"
+  },
+  {
+    "source": "owasp_top10.md",
+    "chunk_index": 2,
+    "text": "scan with SCA tools\n- Disable debug mode and stack traces in production\n- Set secure HTTP headers: CSP, HSTS, X-Frame-Options\n\n## A06 - Vulnerable and Outdated Components\n- Pin all dependency versions; avoid wildcard ranges\n- Run `pip audit` / `npm audit` in CI on every MR\n- Never use components with known CVEs above CVSS 7.0\n\n## A07 - Identification and Authentication Failures\n- Enforce MFA for all admin and production access\n- Implement account lockout after repeated failures\n- Use secure, random session tokens (min 128 bits)\n- Expire sessions after inactivity\n\n## A08 - Software and Data Integrity Failures\n- Verify integrity of all third-party libraries (checksums, signatures)\n- Use signed commits in Git\n- Never deserialize untrusted data without validation\n\n## A09 - Security Logging and"
+  },
+  {
+    "source": "owasp_top10.md",
+    "chunk_index": 3,
+    "text": "egrity Failures\n- Verify integrity of all third-party libraries (checksums, signatures)\n- Use signed commits in Git\n- Never deserialize untrusted data without validation\n\n## A09 - Security Logging and Monitoring Failures\n- Log all authentication events, access control failures, and input validation errors\n- Do not log sensitive data (passwords, tokens, PII)\n- Alert on anomalous patterns within 1 minute\n\n## A10 - Server-Side Request Forgery (SSRF)\n- Validate and sanitize all URLs supplied by users\n- Use allowlists for permitted domains in outbound requests\n- Block requests to internal/private IP ranges from user-controlled URLs"
+  },
+  {
+    "source": "owasp_top10.md",
+    "chunk_index": 4,
+    "text": "P ranges from user-controlled URLs"
+  },
+  {
+    "source": "secure_coding_standards.md",
+    "chunk_index": 0,
+    "text": "# Secure Coding Standards\n\n## Secrets Management\n- All secrets MUST be loaded from environment variables or a secrets manager\n- Prohibited patterns in code: hardcoded passwords, tokens starting with sk-, glpat-, ghp_, AWS keys\n- Pre-commit hooks must include secret scanning (e.g. detect-secrets, truffleHog)\n- If a secret is accidentally committed, rotate it immediately and purge git history\n\n## Authentication & Authorization\n- Every API endpoint must have explicit authentication check\n- Use established auth libraries \u2014 never roll your own crypto\n- OAuth tokens must have the minimum required scopes\n- Service accounts must use short-lived tokens, not long-lived PATs\n\n## Input Validation\n- Validate all inputs at the API boundary\n- Use strict type checking \u2014 reject unexpected fields\n- Limit in"
+  },
+  {
+    "source": "secure_coding_standards.md",
+    "chunk_index": 1,
+    "text": "opes\n- Service accounts must use short-lived tokens, not long-lived PATs\n\n## Input Validation\n- Validate all inputs at the API boundary\n- Use strict type checking \u2014 reject unexpected fields\n- Limit input length to prevent DoS via large payloads\n- Sanitize file names and paths to prevent directory traversal\n\n## Dependency Management\n- No new direct dependencies without security review\n- Indirect dependencies must be locked in a lockfile\n- Dependencies must be reviewed monthly for CVEs\n- Use SBOM (Software Bill of Materials) for all production releases\n\n## Code Review Security Checklist\n- [ ] No hardcoded secrets or credentials\n- [ ] All user inputs validated and sanitized\n- [ ] SQL/NoSQL queries use parameterized form\n- [ ] Error messages do not expose stack traces or internal details\n- [ ]"
+  },
+  {
+    "source": "secure_coding_standards.md",
+    "chunk_index": 2,
+    "text": "hardcoded secrets or credentials\n- [ ] All user inputs validated and sanitized\n- [ ] SQL/NoSQL queries use parameterized form\n- [ ] Error messages do not expose stack traces or internal details\n- [ ] New endpoints have authentication and authorization\n- [ ] Sensitive data is not logged\n- [ ] Dependencies are pinned and audited\n- [ ] No use of eval(), exec(), or dynamic code execution with user input\n\n## File & Path Security\n- Never use user input directly in file paths\n- Use os.path.basename() and validate against allowed directories\n- Set restrictive file permissions (600 for secrets, 644 for public)\n\n## Network Security\n- All outbound HTTP must use HTTPS\n- Validate TLS certificates \u2014 never disable SSL verification\n- Implement timeouts on all network calls (max 30s)\n\n## Logging Policy\n-"
+  },
+  {
+    "source": "secure_coding_standards.md",
+    "chunk_index": 3,
+    "text": "r public)\n\n## Network Security\n- All outbound HTTP must use HTTPS\n- Validate TLS certificates \u2014 never disable SSL verification\n- Implement timeouts on all network calls (max 30s)\n\n## Logging Policy\n- Log: authentication events, authorization failures, input validation errors, system errors\n- Never log: passwords, tokens, credit card numbers, SSNs, health data\n- Structured logging (JSON) required for all production services"
+  }
+]
