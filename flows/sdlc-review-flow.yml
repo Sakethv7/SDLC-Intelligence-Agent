@@ -1,0 +1,156 @@
+name: "SDLC Intelligence Review Flow"
+description: "End-to-end SDLC review flow that runs security analysis and compliance checks on a merge request, then posts structured findings back to the MR thread."
+public: true
+definition:
+  version: v1
+  environment: ambient
+
+  components:
+    # Step 1: Security Agent — scans the diff for vulnerabilities
+    - name: "security_review"
+      type: AgentComponent
+      prompt_id: "security_prompt"
+      inputs:
+        - "context:goal"
+      toolset:
+        - read_file
+        - read_files
+      ui_log_events:
+        - on_agent_final_answer
+        - on_tool_execution_success
+
+    # Step 2: Compliance Agent — checks process hygiene and MR policy
+    - name: "compliance_review"
+      type: AgentComponent
+      prompt_id: "compliance_prompt"
+      inputs:
+        - "context:security_review"
+        - "context:goal"
+      toolset:
+        - read_file
+      ui_log_events:
+        - on_agent_final_answer
+
+    # Step 3: Summary Agent — merges both reports into a single MR comment
+    - name: "summary_reporter"
+      type: AgentComponent
+      prompt_id: "summary_prompt"
+      inputs:
+        - "context:security_review"
+        - "context:compliance_review"
+        - "context:goal"
+      toolset:
+        - create_issue_note
+      ui_log_events:
+        - on_agent_final_answer
+        - on_tool_execution_success
+
+  prompts:
+    - prompt_id: "security_prompt"
+      name: "Security Review Agent"
+      prompt_template:
+        system: |
+          You are a senior application security engineer embedded in a GitLab CI workflow.
+
+          Review the merge request diff or changed files provided and:
+          1. Identify vulnerabilities from OWASP Top 10: injection, broken auth, sensitive data exposure, XXE, broken access control, security misconfig, XSS, insecure deserialization, known vulnerable components, insufficient logging.
+          2. Flag secrets, credentials, or tokens committed to source.
+          3. Assign each finding a severity: CRITICAL, HIGH, MEDIUM, or LOW.
+          4. Suggest a concrete fix for each finding.
+          5. Give a final verdict: APPROVE, REQUEST_CHANGES, or BLOCK.
+
+          Output format:
+          ## Security Review
+          **Verdict:** <APPROVE | REQUEST_CHANGES | BLOCK>
+          **Risk Score:** <1-10>
+          ### Findings
+          - **[SEVERITY]** Title — Location: file:line — Issue: ... — Fix: ...
+          ### Summary
+          One concise paragraph.
+        user: |
+          Review this merge request for security issues.
+
+          MR Context:
+          {{goal}}
+        placeholder: history
+      unit_primitives: []
+      params:
+        timeout: 180
+
+    - prompt_id: "compliance_prompt"
+      name: "Compliance Review Agent"
+      prompt_template:
+        system: |
+          You are a delivery process compliance reviewer for a software engineering team.
+
+          Check the merge request against this delivery checklist:
+          - [ ] MR has a meaningful description (not empty or placeholder)
+          - [ ] Target branch is correct (feature branches should not target main directly for production services)
+          - [ ] MR has at least one reviewer assigned
+          - [ ] Relevant labels are applied (e.g. type::feature, type::bug, security, compliance)
+          - [ ] Breaking changes are documented
+          - [ ] Test coverage exists for changed logic
+          - [ ] Changelog or release notes updated if user-facing
+
+          For each checklist item, state PASS, FAIL, or N/A with a brief reason.
+          End with an overall compliance verdict: COMPLIANT, NEEDS_ATTENTION, or NON_COMPLIANT.
+        user: |
+          Check the compliance of this merge request.
+
+          MR Context:
+          {{goal}}
+
+          Security review result for additional context:
+          {{context}}
+        placeholder: history
+      unit_primitives: []
+      params:
+        timeout: 120
+
+    - prompt_id: "summary_prompt"
+      name: "Summary Reporter"
+      prompt_template:
+        system: |
+          You are a technical writer producing a structured code review summary for a GitLab merge request comment.
+
+          Combine the security findings and compliance checklist results into a single, well-formatted GitLab Markdown comment.
+
+          Structure:
+          ## SDLC Intelligence Report
+
+          ### Security Review
+          <paste security verdict and key findings>
+
+          ### Compliance Checklist
+          <paste compliance verdict and checklist results>
+
+          ### Recommended Action
+          One sentence stating what the author should do before this MR is merged.
+
+          Keep the tone professional and actionable. Use GitLab Markdown (bold, checkboxes, code blocks where helpful).
+        user: |
+          Produce the final SDLC review comment.
+
+          Original MR context:
+          {{goal}}
+
+          Security review:
+          {{context}}
+
+          Compliance review:
+          {{context}}
+        placeholder: history
+      unit_primitives: []
+      params:
+        timeout: 120
+
+  routers:
+    - from: "security_review"
+      to: "compliance_review"
+    - from: "compliance_review"
+      to: "summary_reporter"
+    - from: "summary_reporter"
+      to: "end"
+
+  flow:
+    entry_point: "security_review"
