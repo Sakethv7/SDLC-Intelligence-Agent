@@ -13,3 +13,4 @@ policy_docs/*.json
 vectors.npy
 ids.npy
 payloads.json
+pipeline_report.html

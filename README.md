@@ -1,93 +1,161 @@
-# GitLab AI Hackathon
+# SDLC Intelligence Agent
 
+SDLC Intelligence Agent is a GitLab-native orchestration layer for AI agents that remove friction from the software delivery lifecycle. Instead of acting like a chat assistant, it reacts to real GitLab events and takes action automatically across merge requests, pipelines, and team reporting.
 
+## What Problem It Solves
 
-## Getting started
+AI can already write code. The larger bottlenecks are everything around code:
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- security review arrives too late
+- merge requests lack process hygiene
+- pipeline failures take too long to triage
+- teams lose visibility across weekly delivery progress
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+This project packages those bottlenecks into event-driven agents that operate directly in GitLab workflows.
 
-## Add your files
+## How It Works
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+The system listens for GitLab activity and dispatches work to specialized agents:
 
+- `Security Agent`
+  Scans merge request diffs against internal policy documents and OWASP guidance, then posts findings to the merge request and optionally Slack.
+- `Compliance Agent`
+  Reviews merge request metadata and change context against a release/process checklist when reviewers are assigned.
+- `Insight Agent`
+  Investigates failed pipelines, summarizes probable root causes, estimates recurrence risk, posts alerts, and generates an HTML incident report artifact.
+- `Digest Agent`
+  Builds a weekly engineering digest from merged MRs, closed issues, commits, and pipeline pass/fail trends.
+
+## Trigger Map
+
+- MR opened -> `Security Agent` + `Compliance Agent`
+- Reviewer assigned -> `Compliance Agent`
+- Pipeline failed -> `Insight Agent`
+- Weekly schedule / manual trigger -> `Digest Agent`
+
+Core orchestration lives in [orchestrator.py](orchestrator.py) and the webhook entrypoint lives in [server.py](server.py).
+
+## GitLab Agent Integration
+
+The repository includes a GitLab agent configuration at [.gitlab/agents/sdlc-intelligence/config.yaml](.gitlab/agents/sdlc-intelligence/config.yaml) for project access. The rest of the automation is implemented as Python event handlers and webhook-triggered workflows so it can run both locally and inside GitLab CI.
+
+## Architecture
+
+1. GitLab emits an event or scheduled job.
+2. The webhook server or CI trigger builds a normalized context payload.
+3. The orchestrator dispatches the payload to the correct specialist agent.
+4. The agent fetches GitLab data, runs LLM analysis, and takes action.
+5. Results are posted back to GitLab, Slack, and optional artifacts.
+
+## Repository Layout
+
+- [agents/](agents/) specialist agents and prompts
+- [triggers/](triggers/) CLI/CI entrypoints
+- [tools/](tools/) GitLab, Slack, and Anthropic integrations
+- [policy_docs/](policy_docs/) local security/compliance knowledge base
+- [tests/](tests/) unit tests
+
+## Setup
+
+### Requirements
+
+- Python `3.11+`
+- GitLab personal access token with access to the target project
+- Anthropic API key
+- Slack incoming webhook(s)
+
+### Install
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/sakethv7-group/gitlab-ai-hackathon.git
-git branch -M main
-git push -uf origin main
+
+### Configure
+
+Set the values in [.env.example](.env.example):
+
+- `ANTHROPIC_API_KEY`
+- `GITLAB_URL`
+- `GITLAB_TOKEN`
+- `GITLAB_PROJECT_ID`
+- `SLACK_WEBHOOK_URL`
+- `SLACK_WEBHOOK_URL_ALERTS`
+- `GITLAB_WEBHOOK_SECRET`
+
+## Running Locally
+
+Start the webhook server:
+
+```bash
+uvicorn server:app --reload --port 8080
 ```
 
-## Integrate with your tools
+Run tests:
 
-* [Set up project integrations](https://gitlab.com/sakethv7-group/gitlab-ai-hackathon/-/settings/integrations)
+```bash
+python -m pytest -q
+```
 
-## Collaborate with your team
+Run individual triggers:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```bash
+python -m triggers.weekly_cron
+python -m triggers.reviewer_assignment
+python -m triggers.reviewer_assignment --compliance
+python -m triggers.pipeline_failure
+```
 
-## Test and Deploy
+## Example Webhook Usage
 
-Use the built-in continuous integration in GitLab.
+Manual digest trigger:
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```bash
+curl -X POST http://localhost:8080/webhook/digest \
+  -H "Content-Type: application/json" \
+  -d '{"project_id":"123","weeks_back":1,"post_slack":false}'
+```
 
-***
+GitLab webhook endpoint:
 
-# Editing this README
+```text
+POST /webhook/gitlab
+Header: X-Gitlab-Token: <your secret>
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Why This Is Different
 
-## Suggestions for a good README
+- Event-driven, not chat-only
+- Multi-agent orchestration instead of a single generic assistant
+- Designed around software delivery bottlenecks, not generic Q&A
+- Produces actions and artifacts inside developer workflows
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## Reliability Notes
 
-## Name
-Choose a self-explaining name for your project.
+The Security Agent uses local vector retrieval over policy documents. When a transformer embedding model is unavailable, the repo falls back to a deterministic local embedder so tests and restricted environments still work.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Testing
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Unit tests cover:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- digest formatting and delivery path
+- compliance verdict handling
+- insight failure analysis and trend behavior
+- security policy ingestion and retrieval
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Submission Summary
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+This project is a digital teammate for GitLab teams:
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- it reviews risk when code changes arrive
+- it checks process quality when review ownership changes
+- it diagnoses broken pipelines when delivery fails
+- it summarizes team output on a recurring cadence
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+See [SUBMISSION.md](SUBMISSION.md) for ready-to-paste hackathon submission text.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

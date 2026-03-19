@@ -3,6 +3,8 @@ Insight Agent
 =============
 Analyses pipeline failure patterns and suggests concrete fixes.
 Posts analysis to Slack #security-review alerts channel.
+Posts analysis as an MR comment if a linked MR is found.
+Writes an HTML report to disk for use as a CI artifact.
 Optionally posts a trend report to the failed MR if available.
 
 Trigger: pipeline failure event
@@ -11,10 +13,12 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from agents.base_agent import BaseAgent
 from agents.insight_agent.prompts import ANALYSIS_PROMPT, PATTERN_PROMPT, SYSTEM_PROMPT
+from agents.insight_agent.report import render_html_report
 from tools import anthropic_client, gitlab_client, slack_notifier
 
 logger = logging.getLogger(__name__)
@@ -110,6 +114,35 @@ class InsightAgent(BaseAgent):
             )
             logger.info("Posted pipeline analysis to Slack for pipeline #%s", pipeline_id)
 
+        # ── Post MR comment if a linked MR exists ────────────────────────────
+        mr_iid = context.get("mr_iid")
+        if mr_iid:
+            comment = (
+                f"## 🤖 Insight Agent — Pipeline #{pipeline_id} Failed\n\n"
+                f"{analysis}\n\n"
+                f"---\n_Recurrence Risk: **{risk}** · [View Pipeline]({detail['web_url']})_"
+            )
+            try:
+                gitlab_client.post_mr_comment(project, int(mr_iid), comment)
+                logger.info("Posted analysis comment on MR !%s", mr_iid)
+            except Exception:
+                logger.exception("Failed to post MR comment on !%s", mr_iid)
+
+        # ── Write HTML report artifact ────────────────────────────────────────
+        report_path = context.get("report_path", "pipeline_report.html")
+        html = render_html_report(
+            pipeline_id=pipeline_id,
+            branch=detail["branch"],
+            triggered_by=detail["triggered_by"],
+            pipeline_url=detail["web_url"],
+            failed_jobs=detail["failed_jobs"],
+            analysis=analysis,
+            risk=risk,
+            history=history,
+        )
+        Path(report_path).write_text(html, encoding="utf-8")
+        logger.info("HTML report written to %s", report_path)
+
         # ── Optional trend report if multiple failures ─────────────────────────
         trend_report = None
         if len(history) >= 3:
@@ -140,4 +173,5 @@ class InsightAgent(BaseAgent):
             "failed_jobs": len(detail["failed_jobs"]),
             "recurrence_risk": risk,
             "trend_report": trend_report,
+            "report_path": report_path,
         }

@@ -4,13 +4,16 @@ RAG Store
 Lightweight retrieval-augmented generation store for security policy docs.
 Ported from github.com/Sakethv7/RAG_mini-phase-2.
 
-Uses sentence-transformers for embeddings (no external API needed) and
-NumPy for local vector storage — no Qdrant required for the MVP.
+Uses sentence-transformers for embeddings when available and falls back to a
+deterministic local embedder in offline or restricted environments. NumPy backs
+the local vector store, so the MVP does not require Qdrant.
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
+import re
 from pathlib import Path
 
 import numpy as np
@@ -20,14 +23,48 @@ CHUNK_SIZE = 800
 CHUNK_OVERLAP = 200
 TOP_K = 6
 STORE_DIR = Path(__file__).parent / "store"
+EMBED_DIM = 384
 
 _model: SentenceTransformer | None = None
+logger = logging.getLogger(__name__)
+
+
+def _tokenize(text: str) -> list[str]:
+    return re.findall(r"[a-zA-Z0-9_]+", text.lower())
+
+
+def _fallback_embed(texts: list[str]) -> np.ndarray:
+    """
+    Deterministic hash-based embedding used when the transformer model cannot
+    be loaded. This keeps retrieval functional enough for tests and local demos.
+    """
+    vectors = np.zeros((len(texts), EMBED_DIM), dtype=np.float32)
+    for row, text in enumerate(texts):
+        for token in _tokenize(text):
+            idx = hash(token) % EMBED_DIM
+            vectors[row, idx] += 1.0
+
+        norm = np.linalg.norm(vectors[row])
+        if norm:
+            vectors[row] /= norm
+
+    return vectors
 
 
 def _get_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        _model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        model_name = os.environ.get(
+            "SECURITY_EMBED_MODEL",
+            "sentence-transformers/all-MiniLM-L6-v2",
+        )
+        try:
+            _model = SentenceTransformer(model_name)
+        except Exception as exc:
+            logger.warning(
+                "Falling back to local hash embeddings because model load failed: %s",
+                exc,
+            )
     return _model
 
 
@@ -42,6 +79,8 @@ def _chunk(text: str) -> list[str]:
 
 def _embed(texts: list[str]) -> np.ndarray:
     model = _get_model()
+    if model is None:
+        return _fallback_embed(texts)
     vecs = model.encode(texts, normalize_embeddings=True)
     return vecs.astype(np.float32)
 
@@ -56,7 +95,7 @@ def _load_store() -> tuple[np.ndarray, list[dict]]:
         vectors = np.load(str(vec_path))
         metadata = json.loads(meta_path.read_text())
         return vectors, metadata
-    return np.empty((0, 384), dtype=np.float32), []
+    return np.empty((0, EMBED_DIM), dtype=np.float32), []
 
 
 def _save_store(vectors: np.ndarray, metadata: list[dict]) -> None:
@@ -81,7 +120,7 @@ def ingest_file(path: str | Path) -> int:
     vectors, metadata = _load_store()
     # Remove existing chunks from same file
     keep = [i for i, m in enumerate(metadata) if m["source"] != path.name]
-    vectors = vectors[keep] if keep else np.empty((0, 384), dtype=np.float32)
+    vectors = vectors[keep] if keep else np.empty((0, EMBED_DIM), dtype=np.float32)
     metadata = [metadata[i] for i in keep]
 
     vectors = np.vstack([vectors, new_vecs]) if vectors.size else new_vecs
