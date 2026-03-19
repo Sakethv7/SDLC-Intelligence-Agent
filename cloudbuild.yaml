@@ -1,0 +1,52 @@
+# Cloud Build configuration — builds the container and deploys to Cloud Run.
+#
+# Required substitutions (set in Cloud Build trigger or via --substitutions):
+#   _REGION      : GCP region (e.g. us-central1)
+#   _SERVICE     : Cloud Run service name (e.g. sdlc-intelligence-agent)
+#   _GCP_PROJECT : GCP project ID
+#
+# Required secret env vars on the Cloud Run service (set separately):
+#   ANTHROPIC_API_KEY, GITLAB_TOKEN, GITLAB_PROJECT_ID,
+#   GITLAB_WEBHOOK_SECRET, SLACK_WEBHOOK_URL, GCS_BUCKET
+
+steps:
+  # Step 1: Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - -t
+      - "gcr.io/${_GCP_PROJECT}/${_SERVICE}:${SHORT_SHA}"
+      - -t
+      - "gcr.io/${_GCP_PROJECT}/${_SERVICE}:latest"
+      - .
+
+  # Step 2: Push to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - push
+      - "--all-tags"
+      - "gcr.io/${_GCP_PROJECT}/${_SERVICE}"
+
+  # Step 3: Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - "${_SERVICE}"
+      - "--image=gcr.io/${_GCP_PROJECT}/${_SERVICE}:${SHORT_SHA}"
+      - "--region=${_REGION}"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--port=8080"
+      - "--memory=512Mi"
+      - "--cpu=1"
+      - "--max-instances=3"
+      - "--set-env-vars=GCP_PROJECT_ID=${_GCP_PROJECT}"
+
+images:
+  - "gcr.io/${_GCP_PROJECT}/${_SERVICE}:${SHORT_SHA}"
+  - "gcr.io/${_GCP_PROJECT}/${_SERVICE}:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

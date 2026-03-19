@@ -19,7 +19,7 @@ from typing import Any
 from agents.base_agent import BaseAgent
 from agents.insight_agent.prompts import ANALYSIS_PROMPT, PATTERN_PROMPT, SYSTEM_PROMPT
 from agents.insight_agent.report import render_html_report
-from tools import anthropic_client, gitlab_client, slack_notifier
+from tools import anthropic_client, gcs_client, gitlab_client, slack_notifier
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +143,11 @@ class InsightAgent(BaseAgent):
         Path(report_path).write_text(html, encoding="utf-8")
         logger.info("HTML report written to %s", report_path)
 
+        # ── Upload to Google Cloud Storage if configured ──────────────────────
+        gcs_url = gcs_client.upload_report(pipeline_id, html)
+        if gcs_url:
+            logger.info("Report available at %s", gcs_url)
+
         # ── Optional trend report if multiple failures ─────────────────────────
         trend_report = None
         if len(history) >= 3:
@@ -174,4 +179,5 @@ class InsightAgent(BaseAgent):
             "recurrence_risk": risk,
             "trend_report": trend_report,
             "report_path": report_path,
+            "report_gcs_url": gcs_url,
         }

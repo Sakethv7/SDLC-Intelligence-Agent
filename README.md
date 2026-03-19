@@ -39,6 +39,72 @@ Core orchestration lives in [orchestrator.py](orchestrator.py) and the webhook e
 
 The repository includes a GitLab agent configuration at [.gitlab/agents/sdlc-intelligence/config.yaml](.gitlab/agents/sdlc-intelligence/config.yaml) for project access. The rest of the automation is implemented as Python event handlers and webhook-triggered workflows so it can run both locally and inside GitLab CI.
 
+## GitLab AI Catalog
+
+All four agents and the end-to-end review flow are published as GitLab Duo catalog artifacts:
+
+| File | Type | Description |
+|---|---|---|
+| [agents/sdlc-security-agent.yml](agents/sdlc-security-agent.yml) | Agent | MR diff security scanner |
+| [agents/sdlc-compliance-agent.yml](agents/sdlc-compliance-agent.yml) | Agent | Delivery checklist reviewer |
+| [agents/sdlc-insight-agent.yml](agents/sdlc-insight-agent.yml) | Agent | Pipeline failure analyst |
+| [agents/sdlc-digest-agent.yml](agents/sdlc-digest-agent.yml) | Agent | Weekly sprint digest generator |
+| [flows/sdlc-review-flow.yml](flows/sdlc-review-flow.yml) | Flow | Security + compliance + summary, sequential |
+
+These definitions run on the GitLab Duo Agent Platform, which uses Anthropic Claude models through GitLab's AI infrastructure.
+
+## Anthropic through GitLab
+
+The Python webhook server can route all Claude inference through the GitLab AI Gateway instead of calling the Anthropic API directly. Set `GITLAB_AI_GATEWAY_URL` in your environment:
+
+```bash
+# GitLab.com
+GITLAB_AI_GATEWAY_URL=https://cloud.gitlab.com/ai/v1
+GITLAB_AI_GATEWAY_TOKEN=your_gitlab_pat
+
+# Self-hosted GitLab
+GITLAB_AI_GATEWAY_URL=https://your-gitlab.example.com/ai/v1
+```
+
+When `GITLAB_AI_GATEWAY_URL` is set, the `anthropic_client` module configures the SDK to use the gateway as its base URL. Leaving it blank falls back to the direct Anthropic API.
+
+## Google Cloud Deployment
+
+The webhook server ships as a container that deploys to Cloud Run in one command.
+
+### Deploy to Cloud Run
+
+```bash
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions="_REGION=us-central1,_SERVICE=sdlc-intelligence-agent,_GCP_PROJECT=your-project"
+```
+
+The CI/CD pipeline includes a `deploy-cloud-run` job (manual trigger on main) that runs this automatically via a service account.
+
+### Cloud Storage for Reports
+
+When `GCS_BUCKET` is set, the Insight Agent uploads each HTML pipeline failure report to Google Cloud Storage after writing it locally as a CI artifact:
+
+```
+gs://<GCS_BUCKET>/pipeline-reports/<pipeline_id>.html
+```
+
+Configure in `.env`:
+```bash
+GCP_PROJECT_ID=your_gcp_project_id
+GCS_BUCKET=your_gcs_bucket_name
+```
+
+## Sustainability
+
+This project is designed to minimise unnecessary compute. See [SUSTAINABILITY.md](SUSTAINABILITY.md) for the full breakdown. Key choices:
+
+- **Model tiering**: `claude-haiku` for structured/classification tasks, `claude-sonnet` for complex reasoning
+- **Input truncation**: diffs capped at 20 files / 5 hunks, logs at 60 lines — no unbounded prompt growth
+- **RAG over full injection**: Security Agent retrieves only relevant policy chunks (60–80% token reduction vs. injecting the full policy corpus)
+- **Event-driven only**: zero LLM calls when no GitLab events occur
+- **Token usage logged**: every run writes `token_usage.jsonl` as a CI artifact for cost accountability
+
 ## Architecture
 
 1. GitLab emits an event or scheduled job.

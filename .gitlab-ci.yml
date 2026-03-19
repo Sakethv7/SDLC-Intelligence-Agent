@@ -68,3 +68,19 @@ deploy-server:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
+
+# ── Google Cloud Run deployment ───────────────────────────────────────────────
+deploy-cloud-run:
+  stage: deploy
+  image: google/cloud-sdk:slim
+  script:
+    - echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/sa.json
+    - gcloud auth activate-service-account --key-file=/tmp/sa.json
+    - gcloud config set project $GCP_PROJECT_ID
+    - gcloud builds submit --config cloudbuild.yaml
+      --substitutions="_REGION=${GCP_REGION},_SERVICE=sdlc-intelligence-agent,_GCP_PROJECT=${GCP_PROJECT_ID}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+  variables:
+    GCP_REGION: us-central1
