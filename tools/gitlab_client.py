@@ -105,11 +105,10 @@ def get_commits(project, since: datetime) -> list[dict]:
 
 def get_mr_diff(project, mr_iid: int) -> str:
     mr = project.mergerequests.get(mr_iid)
-    diffs = mr.diffs.list()
+    changes = mr.changes()
     chunks = []
-    for diff in diffs[:20]:          # cap at 20 files
-        for d in diff.diffs[:5]:     # cap at 5 hunks per file
-            chunks.append(f"### {d['new_path']}\n{d['diff']}")
+    for change in changes["changes"][:20]:   # cap at 20 files
+        chunks.append(f"### {change['new_path']}\n{change['diff']}")
     return "\n\n".join(chunks)
 
 
