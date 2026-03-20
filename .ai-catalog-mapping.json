@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "agents": {
+    "agents/sdlc-compliance-agent.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005694",
+      "name": "SDLC Compliance Agent",
+      "created_at": "2026-03-20T11:37:25.580Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564679"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564680"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v1.0.0",
+        "catalog_version": "1.0.0",
+        "synced_at": "2026-03-20T11:37:25.580Z",
+        "definition_hash": "6f5e7e265e74772c"
+      }
+    },
+    "agents/sdlc-digest-agent.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005695",
+      "name": "SDLC Digest Agent",
+      "created_at": "2026-03-20T11:37:26.472Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564681"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564682"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v1.0.0",
+        "catalog_version": "1.0.0",
+        "synced_at": "2026-03-20T11:37:26.472Z",
+        "definition_hash": "9c20e65b6465dc86"
+      }
+    },
+    "agents/sdlc-insight-agent.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005696",
+      "name": "SDLC Insight Agent",
+      "created_at": "2026-03-20T11:37:27.443Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564683"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564684"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v1.0.0",
+        "catalog_version": "1.0.0",
+        "synced_at": "2026-03-20T11:37:27.443Z",
+        "definition_hash": "f3c9fcc03b2a25c5"
+      }
+    },
+    "agents/sdlc-security-agent.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005697",
+      "name": "SDLC Security Agent",
+      "created_at": "2026-03-20T11:37:28.248Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564685"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564686"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v1.0.0",
+        "catalog_version": "1.0.0",
+        "synced_at": "2026-03-20T11:37:28.248Z",
+        "definition_hash": "6dda3150df8085d0"
+      }
+    }
+  },
+  "flows": {
+    "flows/sdlc-review-flow.yml": {
+      "catalog_id": "gid://gitlab/Ai::Catalog::Item/1005698",
+      "name": "SDLC Intelligence Review Flow",
+      "created_at": "2026-03-20T11:37:29.322Z",
+      "item_consumers": {
+        "group": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564687"
+        },
+        "project": {
+          "id": "gid://gitlab/Ai::Catalog::ItemConsumer/5564688"
+        }
+      },
+      "latest_sync": {
+        "git_tag": "v1.0.0",
+        "catalog_version": "1.0.0",
+        "synced_at": "2026-03-20T11:37:29.322Z",
+        "definition_hash": "04a6721789a4ce59"
+      }
+    }
+  }
+}
