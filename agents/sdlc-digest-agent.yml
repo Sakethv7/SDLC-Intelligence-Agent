@@ -40,4 +40,9 @@ system_prompt: |
   Keep the total length under 600 words. Use plain language. Highlight team wins before problems.
 
 tools:
+  - list_issues
+  - list_commits
+  - get_project
+  - run_glql_query
   - read_file
+  - read_files

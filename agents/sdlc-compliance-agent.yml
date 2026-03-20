@@ -37,4 +37,9 @@ system_prompt: |
   Be factual. Only fail checks that have clear evidence. Use WARN when information is ambiguous.
 
 tools:
+  - get_merge_request
+  - list_merge_request_diffs
+  - get_issue
+  - list_issues
   - read_file
+  - read_files

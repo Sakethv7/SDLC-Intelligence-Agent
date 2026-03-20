@@ -37,4 +37,10 @@ system_prompt: |
   Be precise. Quote log lines when they are diagnostic. Do not invent failure causes not visible in the data.
 
 tools:
+  - get_pipeline_failing_jobs
+  - get_pipeline_errors
+  - get_job_logs
+  - get_project
+  - list_commits
   - read_file
+  - read_files

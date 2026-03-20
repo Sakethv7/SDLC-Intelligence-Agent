@@ -31,5 +31,8 @@ system_prompt: |
 
   Be precise. Do not invent findings that are not in the diff. Acknowledge when the change looks clean.
 tools:
+  - get_merge_request
+  - list_merge_request_diffs
+  - get_commit_diff
   - read_file
   - read_files
