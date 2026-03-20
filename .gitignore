@@ -14,3 +14,4 @@ vectors.npy
 ids.npy
 payloads.json
 pipeline_report.html
+token_usage.jsonl
