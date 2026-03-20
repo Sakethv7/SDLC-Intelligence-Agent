@@ -41,7 +41,7 @@ The repository includes a GitLab agent configuration at [.gitlab/agents/sdlc-int
 
 ## GitLab AI Catalog
 
-All four agents and the end-to-end review flow are published as GitLab Duo catalog artifacts:
+All four agents and the end-to-end review flow are published to the **GitLab AI Hackathon catalog** at `v1.0.0` and enabled in the participant project. They are accessible directly from the GitLab Duo Chat sidebar.
 
 | File | Type | Description |
 |---|---|---|
@@ -50,6 +50,21 @@ All four agents and the end-to-end review flow are published as GitLab Duo catal
 | [agents/sdlc-insight-agent.yml](agents/sdlc-insight-agent.yml) | Agent | Pipeline failure analyst |
 | [agents/sdlc-digest-agent.yml](agents/sdlc-digest-agent.yml) | Agent | Weekly sprint digest generator |
 | [flows/sdlc-review-flow.yml](flows/sdlc-review-flow.yml) | Flow | Security + compliance + summary, sequential |
+
+### Catalog Publishing
+
+Agents are published automatically via the [`ai-catalog/catalog-sync`](https://gitlab.com/components/ai-catalog) CI component on every Git tag push. The CI runs three jobs:
+
+1. `validate-items` — validates agent and flow YAML schemas
+2. `placeholder-test` — ensures no placeholder content remains
+3. `catalog-sync` — creates/updates entries in the AI Catalog and enables them in the project
+
+### Using Agents in Duo Chat
+
+1. Open GitLab Duo Chat from any page in the project (bottom-left icon)
+2. Click the agent name at the top of the chat panel to open the agent picker
+3. Search **SDLC** to filter to the four agents
+4. Select an agent and start chatting
 
 These definitions run on the GitLab Duo Agent Platform, which uses Anthropic Claude models through GitLab's AI infrastructure.
 
