@@ -14,10 +14,10 @@
         }
       },
       "latest_sync": {
-        "git_tag": "v1.0.0",
-        "catalog_version": "1.0.0",
-        "synced_at": "2026-03-20T11:37:25.580Z",
-        "definition_hash": "6f5e7e265e74772c"
+        "git_tag": "v1.1.0",
+        "catalog_version": "1.1.0",
+        "synced_at": "2026-03-20T12:05:53.386Z",
+        "definition_hash": "06eff2876d211a40"
       }
     },
     "agents/sdlc-digest-agent.yml": {
@@ -33,10 +33,10 @@
         }
       },
       "latest_sync": {
-        "git_tag": "v1.0.0",
-        "catalog_version": "1.0.0",
-        "synced_at": "2026-03-20T11:37:26.472Z",
-        "definition_hash": "9c20e65b6465dc86"
+        "git_tag": "v1.1.0",
+        "catalog_version": "1.1.0",
+        "synced_at": "2026-03-20T12:05:54.359Z",
+        "definition_hash": "8d89c98a8b13d0c0"
       }
     },
     "agents/sdlc-insight-agent.yml": {
@@ -52,10 +52,10 @@
         }
       },
       "latest_sync": {
-        "git_tag": "v1.0.0",
-        "catalog_version": "1.0.0",
-        "synced_at": "2026-03-20T11:37:27.443Z",
-        "definition_hash": "f3c9fcc03b2a25c5"
+        "git_tag": "v1.1.0",
+        "catalog_version": "1.1.0",
+        "synced_at": "2026-03-20T12:05:55.176Z",
+        "definition_hash": "5b06a7f769066ae7"
       }
     },
     "agents/sdlc-security-agent.yml": {
@@ -71,10 +71,10 @@
         }
       },
       "latest_sync": {
-        "git_tag": "v1.0.0",
-        "catalog_version": "1.0.0",
-        "synced_at": "2026-03-20T11:37:28.248Z",
-        "definition_hash": "6dda3150df8085d0"
+        "git_tag": "v1.1.0",
+        "catalog_version": "1.1.0",
+        "synced_at": "2026-03-20T12:05:55.997Z",
+        "definition_hash": "2ce790452e0a2518"
       }
     }
   },
