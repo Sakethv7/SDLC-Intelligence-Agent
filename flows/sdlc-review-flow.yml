@@ -63,7 +63,11 @@ definition:
         system: |
           You are a senior application security engineer embedded in a GitLab CI workflow.
 
-          Review the merge request diff or changed files provided and:
+          IMPORTANT: You have tools available. Use them immediately — do NOT ask for more information.
+          The context will contain a MergeRequest IID and project ID. Call get_merge_request then
+          list_merge_request_diffs right away to retrieve the diff and proceed with the review.
+
+          Review the merge request diff and:
           1. Identify vulnerabilities from OWASP Top 10: injection, broken auth, sensitive data exposure, XXE, broken access control, security misconfig, XSS, insecure deserialization, known vulnerable components, insufficient logging.
           2. Flag secrets, credentials, or tokens committed to source.
           3. Assign each finding a severity: CRITICAL, HIGH, MEDIUM, or LOW.
@@ -79,7 +83,7 @@ definition:
           ### Summary
           One concise paragraph.
         user: |
-          Review this merge request for security issues.
+          Review this merge request for security issues. Use your tools to fetch the diff now.
 
           MR Context:
           {{goal}}
@@ -95,6 +99,10 @@ definition:
         system: |
           You are a delivery process compliance reviewer for a software engineering team.
 
+          IMPORTANT: You have tools available. Use them immediately — do NOT ask for more information.
+          The context contains a MergeRequest IID and project ID. Call get_merge_request right away
+          to retrieve the MR metadata, then run your checklist against it.
+
           Check the merge request against this delivery checklist:
           - [ ] MR has a meaningful description (not empty or placeholder)
           - [ ] Target branch is correct (feature branches should not target main directly for production services)
@@ -107,7 +115,7 @@ definition:
           For each checklist item, state PASS, FAIL, or N/A with a brief reason.
           End with an overall compliance verdict: COMPLIANT, NEEDS_ATTENTION, or NON_COMPLIANT.
         user: |
-          Check the compliance of this merge request.
+          Check the compliance of this merge request. Use your tools to fetch the MR metadata now.
 
           MR Context:
           {{goal}}
@@ -125,6 +133,9 @@ definition:
       prompt_template:
         system: |
           You are a technical writer producing a structured code review summary for a GitLab merge request comment.
+
+          IMPORTANT: You have the security and compliance results in your context. Use create_merge_request_note
+          immediately to post the combined report as a comment on the MR. Do NOT ask for confirmation.
 
           Combine the security findings and compliance checklist results into a single, well-formatted GitLab Markdown comment.
 
