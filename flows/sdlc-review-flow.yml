@@ -6,12 +6,13 @@ definition:
   environment: ambient
 
   components:
-    # Step 1: Security Agent — scans the diff for vulnerabilities
+    # Step 1: Security Agent — scans the MR diff for vulnerabilities
     - name: "security_review"
       type: AgentComponent
       prompt_id: "security_prompt"
       inputs:
-        - "context:goal"
+        - from: "context:goal"
+          as: "goal"
       toolset:
         - get_merge_request
         - list_merge_request_diffs
@@ -25,13 +26,14 @@ definition:
       type: AgentComponent
       prompt_id: "compliance_prompt"
       inputs:
-        - "context:security_review"
-        - "context:goal"
+        - from: "context:goal"
+          as: "goal"
+        - from: "context:security_review"
+          as: "security_findings"
       toolset:
         - get_merge_request
         - list_merge_request_diffs
         - list_issues
-        - get_repository_file
       ui_log_events:
         - on_agent_final_answer
 
@@ -40,11 +42,14 @@ definition:
       type: AgentComponent
       prompt_id: "summary_prompt"
       inputs:
-        - "context:security_review"
-        - "context:compliance_review"
-        - "context:goal"
+        - from: "context:goal"
+          as: "goal"
+        - from: "context:security_review"
+          as: "security_findings"
+        - from: "context:compliance_review"
+          as: "compliance_findings"
       toolset:
-        - create_issue_note
+        - create_merge_request_note
       ui_log_events:
         - on_agent_final_answer
         - on_tool_execution_success
@@ -52,6 +57,8 @@ definition:
   prompts:
     - prompt_id: "security_prompt"
       name: "Security Review Agent"
+      unit_primitives:
+        - duo_agent_platform
       prompt_template:
         system: |
           You are a senior application security engineer embedded in a GitLab CI workflow.
@@ -77,10 +84,13 @@ definition:
           MR Context:
           {{goal}}
         placeholder: history
-      unit_primitives: []
+      params:
+        timeout: 180
 
     - prompt_id: "compliance_prompt"
       name: "Compliance Review Agent"
+      unit_primitives:
+        - duo_agent_platform
       prompt_template:
         system: |
           You are a delivery process compliance reviewer for a software engineering team.
@@ -103,12 +113,15 @@ definition:
           {{goal}}
 
           Security review result for additional context:
-          {{context:security_review}}
+          {{security_findings}}
         placeholder: history
-      unit_primitives: []
+      params:
+        timeout: 120
 
     - prompt_id: "summary_prompt"
       name: "Summary Reporter"
+      unit_primitives:
+        - duo_agent_platform
       prompt_template:
         system: |
           You are a technical writer producing a structured code review summary for a GitLab merge request comment.
@@ -135,12 +148,13 @@ definition:
           {{goal}}
 
           Security review:
-          {{context:security_review}}
+          {{security_findings}}
 
           Compliance review:
-          {{context:compliance_review}}
+          {{compliance_findings}}
         placeholder: history
-      unit_primitives: []
+      params:
+        timeout: 120
 
   routers:
     - from: "security_review"
