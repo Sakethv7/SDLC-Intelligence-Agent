@@ -11,6 +11,8 @@ definition:
       type: AgentComponent
       prompt_id: "security_prompt"
       inputs:
+        - from: "context:project_id"
+          as: "project_id"
         - from: "context:goal"
           as: "goal"
       toolset:
@@ -26,6 +28,8 @@ definition:
       type: AgentComponent
       prompt_id: "compliance_prompt"
       inputs:
+        - from: "context:project_id"
+          as: "project_id"
         - from: "context:goal"
           as: "goal"
         - from: "context:security_review"
@@ -42,6 +46,8 @@ definition:
       type: AgentComponent
       prompt_id: "summary_prompt"
       inputs:
+        - from: "context:project_id"
+          as: "project_id"
         - from: "context:goal"
           as: "goal"
         - from: "context:security_review"
@@ -85,8 +91,8 @@ definition:
         user: |
           Review this merge request for security issues. Use your tools to fetch the diff now.
 
-          MR Context:
-          {{goal}}
+          Project ID: {{project_id}}
+          MR Context: {{goal}}
         placeholder: history
       params:
         timeout: 180
@@ -117,8 +123,8 @@ definition:
         user: |
           Check the compliance of this merge request. Use your tools to fetch the MR metadata now.
 
-          MR Context:
-          {{goal}}
+          Project ID: {{project_id}}
+          MR Context: {{goal}}
 
           Security review result for additional context:
           {{security_findings}}
@@ -153,10 +159,10 @@ definition:
 
           Keep the tone professional and actionable. Use GitLab Markdown (bold, checkboxes, code blocks where helpful).
         user: |
-          Produce the final SDLC review comment.
+          Produce the final SDLC review comment and post it using create_merge_request_note immediately.
 
-          Original MR context:
-          {{goal}}
+          Project ID: {{project_id}}
+          Original MR context: {{goal}}
 
           Security review:
           {{security_findings}}
