@@ -13,6 +13,8 @@ definition:
       inputs:
         - "context:goal"
       toolset:
+        - get_merge_request
+        - list_merge_request_diffs
         - read_file
         - read_files
       ui_log_events:
@@ -27,6 +29,9 @@ definition:
         - "context:security_review"
         - "context:goal"
       toolset:
+        - get_merge_request
+        - list_merge_request_diffs
+        - list_issues
         - read_file
       ui_log_events:
         - on_agent_final_answer
@@ -101,7 +106,7 @@ definition:
           {{goal}}
 
           Security review result for additional context:
-          {{context}}
+          {{context:security_review}}
         placeholder: history
       unit_primitives: []
       params:
@@ -135,10 +140,10 @@ definition:
           {{goal}}
 
           Security review:
-          {{context}}
+          {{context:security_review}}
 
           Compliance review:
-          {{context}}
+          {{context:compliance_review}}
         placeholder: history
       unit_primitives: []
       params:
