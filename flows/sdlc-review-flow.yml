@@ -15,8 +15,7 @@ definition:
       toolset:
         - get_merge_request
         - list_merge_request_diffs
-        - read_file
-        - read_files
+        - get_repository_file
       ui_log_events:
         - on_agent_final_answer
         - on_tool_execution_success
@@ -32,7 +31,7 @@ definition:
         - get_merge_request
         - list_merge_request_diffs
         - list_issues
-        - read_file
+        - get_repository_file
       ui_log_events:
         - on_agent_final_answer
 
@@ -79,8 +78,6 @@ definition:
           {{goal}}
         placeholder: history
       unit_primitives: []
-      params:
-        timeout: 180
 
     - prompt_id: "compliance_prompt"
       name: "Compliance Review Agent"
@@ -109,8 +106,6 @@ definition:
           {{context:security_review}}
         placeholder: history
       unit_primitives: []
-      params:
-        timeout: 120
 
     - prompt_id: "summary_prompt"
       name: "Summary Reporter"
@@ -146,8 +141,6 @@ definition:
           {{context:compliance_review}}
         placeholder: history
       unit_primitives: []
-      params:
-        timeout: 120
 
   routers:
     - from: "security_review"
