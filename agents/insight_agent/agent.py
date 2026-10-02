@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,38 @@ from agents.insight_agent.report import render_html_report
 from tools import anthropic_client, gcs_client, gitlab_client, slack_notifier
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_risk(analysis: str) -> str:
+    """
+    Parse the recurrence risk level from Claude's structured output.
+
+    SYSTEM_PROMPT asks for: ### Recurrence Risk\n**LOW / MEDIUM / HIGH** — ...
+    We match that section specifically rather than scanning the whole text,
+    which prevents false positives like "HIGH confidence" or "LOW priority"
+    triggering the wrong risk level.
+
+    Falls back to MEDIUM if the section is missing or unparseable.
+    """
+    # Primary: match the markdown bold on the line after the heading
+    m = re.search(
+        r"Recurrence Risk\s*\n\*\*(LOW|MEDIUM|HIGH)\*\*",
+        analysis,
+        re.IGNORECASE,
+    )
+    if m:
+        return m.group(1).upper()
+
+    # Fallback: first HIGH/MEDIUM/LOW that appears after "Recurrence Risk"
+    m = re.search(
+        r"Recurrence Risk.{0,120}?(HIGH|MEDIUM|LOW)",
+        analysis,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if m:
+        return m.group(1).upper()
+
+    return "MEDIUM"
 
 
 def _fmt_jobs_detail(failed_jobs: list[dict]) -> str:
@@ -97,11 +130,11 @@ class InsightAgent(BaseAgent):
         )
 
         # ── Determine recurrence risk for Slack title ─────────────────────────
-        risk = "MEDIUM"
-        if "HIGH" in analysis and "Recurrence Risk" in analysis:
-            risk = "HIGH"
-        elif "LOW" in analysis and "Recurrence Risk" in analysis:
-            risk = "LOW"
+        # Parse from the structured "### Recurrence Risk\n**HIGH**" section
+        # that SYSTEM_PROMPT instructs Claude to emit. Avoids false positives
+        # from "HIGH confidence" or "LOW priority" appearing elsewhere in the
+        # analysis text (the old string-match approach).
+        risk = _extract_risk(analysis)
 
         risk_emoji = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}.get(risk, "🟡")
 
