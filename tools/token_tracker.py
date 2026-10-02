@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Cost-per-million-tokens reference (USD) — used only for sustainability reporting
 _COST_PER_MTok: dict[str, dict[str, float]] = {
     "claude-sonnet-4-6":        {"input": 3.00,  "output": 15.00},
-    "claude-haiku-4-5-20251001": {"input": 0.25,  "output": 1.25},
+    "claude-haiku-4-5-20251001": {"input": 1.00,  "output": 5.00},
     "default":                   {"input": 3.00,  "output": 15.00},
 }
 

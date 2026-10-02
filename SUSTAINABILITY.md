@@ -11,7 +11,7 @@ The project uses two Claude models with deliberate intent:
 | Security review (RAG + OWASP analysis) | claude-sonnet-4-6 | Complex multi-step reasoning over policy context requires a capable model |
 | Pipeline failure analysis | claude-sonnet-4-6 | Log interpretation + root cause classification benefits from higher accuracy |
 | Weekly digest generation | claude-sonnet-4-6 | Synthesis of diverse data into narrative requires coherent long-form output |
-| Pipeline trend analysis | claude-haiku-4-5-20251001 | Pattern summarisation over structured data is a simpler task — haiku is sufficient and ~12× cheaper |
+| Pipeline trend analysis | claude-haiku-4-5-20251001 | Pattern summarisation over structured data is a simpler task — haiku is sufficient and about 3× cheaper per token ($1 / $5 vs $3 / $15 per million input / output tokens) |
 | Compliance checklist review | claude-haiku-4-5-20251001 | Structured metadata evaluation maps cleanly to a smaller model's strengths |
 
 **Rule:** use the least capable model that produces acceptable output for the task. Haiku is selected wherever the task is structured, short-context, or classification-oriented.
@@ -57,7 +57,7 @@ HTML pipeline reports are written once as CI artifacts rather than rendered serv
 
 | Design choice | Token/compute impact |
 |---|---|
-| Haiku for simple tasks | ~12× cheaper per call vs Sonnet |
+| Haiku for simple tasks | About 3× cheaper per token vs Sonnet ($1 / $5 vs $3 / $15 per million tokens, Anthropic list prices). Per call depends on token counts. Not measured for this workload |
 | Diff capped at 20 files / 5 hunks | Prevents unbounded prompt growth |
 | Log tail at 60 lines | Avoids sending MB-scale CI logs |
 | RAG chunk retrieval | Bounds prompt growth for larger policy sets. At the current 6 KB corpus it returns 67–103% of it, so no measured saving yet |
