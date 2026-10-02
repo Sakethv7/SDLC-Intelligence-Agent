@@ -30,8 +30,10 @@ Sending unnecessary tokens to the LLM is the single biggest source of waste. Eve
 
 The Security Agent uses retrieval-augmented generation over local policy documents rather than injecting all policy content into every prompt. Only the top-k most relevant chunks (cosine similarity threshold ≥ 0.2) are included. This means:
 
-- Typical prompt contains ~2-4 policy chunks (~1,600–3,200 characters) instead of the full policy corpus (~12,000 characters).
-- Estimated token reduction per security scan: **60–80%** of policy context.
+- The retrieval step is built to keep prompts bounded as the policy set grows.
+- **Measured, not estimated:** the shipped policy corpus is 6,062 characters. Retrieved context for four test diffs was 4,048 to 6,209 characters (5 to 8 chunks), which is 67% to 103% of the corpus. The three fixed queries each return up to four chunks, so a corpus this small is almost fully retrieved on every scan.
+- At this corpus size retrieval saves little or nothing. It would only reduce tokens meaningfully on a policy set many times larger. An earlier version of this document claimed a 60–80% reduction. That figure was an estimate and the measurement does not support it.
+- Method: `_build_policy_context` run against the shipped `policy_docs/` with `sentence-transformers/all-MiniLM-L6-v2`, on a 2026-10-02 run with four sample diffs (the demo app, a SQL injection, a docs-only change, a CSS change).
 
 ## Event-Driven Execution (No Polling)
 
@@ -58,7 +60,7 @@ HTML pipeline reports are written once as CI artifacts rather than rendered serv
 | Haiku for simple tasks | ~12× cheaper per call vs Sonnet |
 | Diff capped at 20 files / 5 hunks | Prevents unbounded prompt growth |
 | Log tail at 60 lines | Avoids sending MB-scale CI logs |
-| RAG chunk retrieval | 60–80% reduction in policy context tokens |
+| RAG chunk retrieval | Bounds prompt growth for larger policy sets. At the current 6 KB corpus it returns 67–103% of it, so no measured saving yet |
 | Event-driven (no polling) | Zero idle inference |
 | max_tokens bounded per task | Prevents over-generation |
 | Token usage logged as artifact | Enables cost accountability |

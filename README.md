@@ -116,7 +116,7 @@ This project is designed to minimise unnecessary compute. See [SUSTAINABILITY.md
 
 - **Model tiering**: `claude-haiku` for structured/classification tasks, `claude-sonnet` for complex reasoning
 - **Input truncation**: diffs capped at 20 files / 5 hunks, logs at 60 lines — no unbounded prompt growth
-- **RAG over full injection**: Security Agent retrieves only relevant policy chunks (60–80% token reduction vs. injecting the full policy corpus)
+- **RAG over full injection**: Security Agent retrieves relevant policy chunks so prompts stay bounded as the policy set grows. At the current ~6 KB corpus it returns most of it, so there is no measured saving yet (see [SUSTAINABILITY.md](SUSTAINABILITY.md))
 - **Event-driven only**: zero LLM calls when no GitLab events occur
 - **Token usage logged**: every run writes `token_usage.jsonl` as a CI artifact for cost accountability
 
